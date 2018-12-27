@@ -1,0 +1,1089 @@
+---
+title: "STAT 517 Final Project"
+author: "Vignesh J Muralidharan"
+date: "November 1, 2018"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+#List of Packages and library
+
+```{r}
+library(tidyverse); library(factoextra); library(cluster) ; library(NbClust) 
+library(fpc) ; library(dendroextras); library(dendextend); library(mclust) 
+library(dbscan) ; library(dplyr); library(plyr); library(dataQualityR)
+library(e1071) ; library(seriation); library(DT);library(arulesViz)
+library(arulesCBA)
+```
+#Data input
+```{r}
+data=read.csv("https://raw.githubusercontent.com/vigneshjmurali/Statistical-Predictive-Modelling/master/Datasets/Final%20project_dataset.csv")
+dim(data)
+#names(data)
+```
+
+#PREPROCESSING - IMPUTATION 
+The variable Field consist of factors with 260 levels which is going to affect the analysis in future. in this senario the levels are good to reduce with differrent levels of categories and revaluing them is done below
+
+```{r}
+data$field=as.character(data$field)
+data$d_d_age=revalue(data$d_d_age,c("[0-1]"="1")); levels(data)
+data$field=recode(data$field, "'African-American Studies/History'"="Education")
+data$field=recode(data$field,"'American Studies [Masters]'"="Education")
+data$field=recode(data$field,"'Applied Maths/Econs'"="Science")
+data$field=recode(data$field,"'Applied Physiology & Nutrition'"="Science")
+data$field=recode(data$field,"'art education'"= "Art")
+data$field=recode(data$field,"'Art Education'"="Art")
+data$field=recode(data$field,"'art history'"="Art")
+data$field=recode(data$field,"'Art History'"="Art")
+data$field=recode(data$field,"'Art History/medicine'"="Art")
+data$field=recode(data$field,"'Arts Administration'"="Art")
+data$field=recode(data$field,"'bilingual education'"="Education")
+data$field=recode(data$field,"'Bilingual Education'"="Education")
+data$field=recode(data$field,"'Biochemistry & Molecular Biophysics'"="Science")
+data$field=recode(data$field,"'Biology PhD'"="Science")
+data$field=recode(data$field,"'biomedical engineering'"="Engineering")
+data$field=recode(data$field,"'Biomedical engineering'"="Engineering")
+data$field=recode(data$field,"'Biomedical Engineering'"="Engineering")
+data$field=recode(data$field,"'biomedical informatics'"="Engineering")
+data$field=recode(data$field,"'Biomedical Informatics'"="Engineering")
+data$field=recode(data$field,"'Business- MBA'"="Business")
+data$field=recode(data$field,"'Business [Finance & Marketing]'"="Business")
+data$field=recode(data$field,"'Business [MBA]'"="Business")
+data$field=recode(data$field,"'Business Administration'"="Business")
+data$field=recode(data$field,"'Business and International Affairs [MBA/MIA Dual Degree]'"="Business")
+data$field=recode(data$field,"'BUSINESS CONSULTING'"="Business")
+data$field=recode(data$field,"'business school'"="Business")
+data$field=recode(data$field,"'Business School'"="Business")
+data$field=recode(data$field,"'Business/ Finance/ Real Estate'"="Business")
+data$field=recode(data$field,"'Business; marketing'"="Business")
+data$field=recode(data$field,"'Business; Media'"="Business")
+data$field=recode(data$field,"'Cell Biology'"="Science")
+data$field=recode(data$field,"'Climate-Earth and Environ. Science'"="Science")
+data$field=recode(data$field,"'climate change'"="Science")
+data$field=recode(data$field,"'Climate Dynamics'"="Science")
+data$field=recode(data$field,"'Clinical Psychology'"="Science")
+data$field=recode(data$field,"'Cognitive Studies in Education'"="Education")
+data$field=recode(data$field,"'Communications in Education'"="Education")
+data$field=recode(data$field,"'Comparative Literature'"="Education")
+data$field=recode(data$field,"'Computational Biochemsistry'"="Science")
+data$field=recode(data$field,"'Computer Science'"="Engineering")
+data$field=recode(data$field,"'Conservation biology'"="Science")
+data$field=recode(data$field,"'Counseling Psychology'"="Education")
+data$field=recode(data$field,"'Creative Writing'"="Education")
+data$field=recode(data$field,"'Creative Writing - Nonfiction'"="Education")
+data$field=recode(data$field,"'Creative Writing [Nonfiction]'"="Education")
+data$field=recode(data$field,"'Curriculum and Teaching/Giftedness'"="Education")
+data$field=recode(data$field,"'Early Childhood Education'"="Education")
+data$field=recode(data$field,"'Earth and Environmental Science'"="Science")
+data$field=recode(data$field,"'Economics and Political Science'"="Science")
+data$field=recode(data$field,"'Economics; English'"="Education")
+data$field=recode(data$field,"'Economics; Sociology'"="Education")
+data$field=recode(data$field,"'Ed.D. in higher education policy at TC'"="Education")
+data$field=recode(data$field,"'Education- Literacy Specialist'"="Education")
+data$field=recode(data$field,"'Education Administration'"="Education")
+data$field=recode(data$field,"'Education Leadership - Public School Administration'"="Education")
+data$field=recode(data$field,"'Education Policy'"="Education")
+data$field=recode(data$field,"'Educational Psychology'"="Education")
+data$field=recode(data$field,"'Electrical Engg.'"="Engineering")
+data$field=recode(data$field,"'electrical engineering'"="Engineering")
+data$field=recode(data$field,"'Electrical Engineering'"="Engineering")
+data$field=recode(data$field,"'ELECTRICAL ENGINEERING'"="Engineering")
+data$field=recode(data$field,"'elementary education'"="Education")
+data$field=recode(data$field,"'Elementary Education'"="Education")
+data$field=recode(data$field,"'Elementary Education - Preservice'"="Education")
+data$field=recode(data$field,"'Elementary/Childhood Education [MA]'"="Education")
+data$field=recode(data$field,"'English and Comp Lit'"="Education")
+data$field=recode(data$field,"'English Education'"="Education")
+data$field=recode(data$field,"'Environmental Engineering'"="Engineering")
+data$field=recode(data$field,"'Financial Engineering'"="Engineering")
+data$field=recode(data$field,"'financial math'"="Business")
+data$field=recode(data$field,"'Fundraising Management'"="Business")
+data$field=recode(data$field,"'General management/finance'"="Business")
+data$field=recode(data$field,"'Genetics & Development'"="Science")
+data$field=recode(data$field,"'German Literature'"="Education")
+data$field=recode(data$field,"'GS Postbacc PreMed'"="Medical")
+data$field=recode(data$field,"'Health policy'"="Education")
+data$field=recode(data$field,"'Higher Ed. - M.A.'"="Education")
+data$field=recode(data$field,"'History [GSAS - PhD]'"="Education")
+data$field=recode(data$field,"'History of Religion'"="Education")
+data$field=recode(data$field,"'Human Rights'"="Education")
+data$field=recode(data$field,"'Human Rights: Middle East'"="Education")
+data$field=recode(data$field,"'Industrial Engineering'"="Engineering")
+data$field=recode(data$field,"'Industrial Engineering/Operations Research'"="Engineering")
+data$field=recode(data$field,"'Instructional Media and Technology'"="Engineering")
+data$field=recode(data$field,"'Instructional Tech & Media'"="Engineering")
+data$field=recode(data$field,"'Intellectual Property Law'"="Business")
+data$field=recode(data$field,"'International affairs'"="Business")
+data$field=recode(data$field,"'International Affairs'"="Business")
+data$field=recode(data$field,"'international affairs - economic development'"="Business")
+data$field=recode(data$field,"'International Affairs - Economic Policy'"="Business")
+data$field=recode(data$field,"'International Affairs and Public Health'"="Business")
+data$field=recode(data$field,"'International Affairs/Business'"="Business")
+data$field=recode(data$field,"'International Affairs/Finance'"="Business")
+data$field=recode(data$field,"'international affairs/international finance'"="Business")
+data$field=recode(data$field,"'International Business'"="Business")
+data$field=recode(data$field,"'International Development'"="Business")
+data$field=recode(data$field,"'International Educational Development'"="Business")
+data$field=recode(data$field,"'international finance and business'"="Business")
+data$field=recode(data$field,"'International Finance; Economic Policy'"="Business")
+data$field=recode(data$field,"'International Politics'"="Business")
+data$field=recode(data$field,"'International Relations'"="Business")
+data$field=recode(data$field,"'International Security Policy - SIPA'"="Business")
+data$field=recode(data$field,"'Intrernational Affairs'"="Business")
+data$field=recode(data$field,"'Japanese Literature'"="Education")
+data$field=recode(data$field,"'Law and English Literature [J.D./Ph.D.]'"="Education")
+data$field=recode(data$field,"'Law and Social Work'"="Education")
+data$field=recode(data$field,"'MA Biotechnology'"="Science")
+data$field=recode(data$field,"'MA in Quantitative Methods'"="Science")
+data$field=recode(data$field,"'MA Science Education'"="Science")
+data$field=recode(data$field,"'MA Teaching Social Studies'"="Science")
+data$field=recode(data$field,"'marine geophysics'"="Education")
+data$field=recode(data$field,"'Master in Public Administration'"="Education")
+data$field=recode(data$field,"'Master of International Affairs'"="Education")
+data$field=recode(data$field,"'Masters in Public Administration'"="Education")
+data$field=recode(data$field,"'Masters of Industrial Engineering'"="Education")
+data$field=recode(data$field,"'Masters of Social Work'"="Education")
+data$field=recode(data$field,"'Masters of Social Work&Education'"="Business")
+data$field=recode(data$field,"'math education'"="Business")
+data$field=recode(data$field,"'math of finance'"="Business")
+data$field=recode(data$field,"'Mathematical Finance'"="Business")
+data$field=recode(data$field,"'Mathematics; PhD'"="Business")
+data$field=recode(data$field,"'MBA - Private Equity / Real Estate'"="Business")
+data$field=recode(data$field,"'MBA / Master of International Affairs [SIPA]'"="Business")
+data$field=recode(data$field,"'MBA Finance'"="Business")
+data$field=recode(data$field,"'Mechanical Engineering'"="Engineering")
+data$field=recode(data$field,"'medical informatics'"="Medical")
+data$field=recode(data$field,"'Medical Informatics'"="Medical")
+data$field=recode(data$field,"'medicine and biochemistry'"="Medical")
+data$field=recode(data$field,"'MFA -Film'"="Education")
+data$field=recode(data$field,"'MFA  Poetry'"="Education")
+data$field=recode(data$field,"'MFA Acting Program'"="Education")
+data$field=recode(data$field,"'MFA Creative Writing'"="Education")
+data$field=recode(data$field,"'MFA Writing'"="Education")
+data$field=recode(data$field,"'Modern Chinese Literature'"="Education")
+data$field=recode(data$field,"'Molecular Biology'"="Science")
+data$field=recode(data$field,"'Museum Anthropology'"="Science")
+data$field=recode(data$field,"'music education'"="Education")
+data$field=recode(data$field,"'Music Education'"="Education")
+data$field=recode(data$field,"'Neuroscience and Education'"="Education")
+data$field=recode(data$field,"'Neurosciences/Stem cells'"="Education")
+data$field=recode(data$field,"'Nonfiction writing'"="Education")
+data$field=recode(data$field,"'NonFiction Writing'"="Education")
+data$field=recode(data$field,"'Operations Research'"="Science")
+data$field=recode(data$field,"'Operations Research [SEAS]'"="Science")
+data$field=recode(data$field,"'Organizational Psychology'"="Science")
+data$field=recode(data$field,"'Philosophy [Ph.D.]'"="Science")
+data$field=recode(data$field,"'Philosophy and Physics'"="Science")
+data$field=recode(data$field,"'physics [astrophysics]'"="Science")
+data$field=recode(data$field,"'political science'"="Science")
+data$field=recode(data$field,"'Political Science'"="Science")
+data$field=recode(data$field,"'psychology and english'"="Education")
+data$field=recode(data$field,"'Public Administration'"="Education")
+data$field=recode(data$field,"'Public Health'"="Education")
+data$field=recode(data$field,"'Public Policy'"="Education")
+data$field=recode(data$field,"'Religion; GSAS'"="Education")
+data$field=recode(data$field,"'School Psychology'"="Education")
+data$field=recode(data$field,"'SIPA-International Affairs'"="Education")
+data$field=recode(data$field,"'SIPA - Energy'"="Education")
+data$field=recode(data$field,"'SIPA / MIA'"="Education")
+data$field=recode(data$field,"'SOA -- writing'"="Education")
+data$field=recode(data$field,"'Social Studies Education'"="Education")
+data$field=recode(data$field,"'social work'"="Education")
+data$field=recode(data$field,"'Social work'"="Education")
+data$field=recode(data$field,"'Social Work'"="Education")
+data$field=recode(data$field,"'Social Work/SIPA'"="Education")
+data$field=recode(data$field,"'Sociology and Education'"="Education")
+data$field=recode(data$field,"'Sociomedical Sciences- School of Public Health'"="Education")
+data$field=recode(data$field,"'Speech Language Pathology'"="Education")
+data$field=recode(data$field,"'Speech Languahe Pathology'"="Education")
+data$field=recode(data$field,"'speech pathology'"="Education")
+data$field=recode(data$field,"'Speech Pathology'"="Education")
+data$field=recode(data$field,"'TC [Health Ed]'"="Education")
+data$field=recode(data$field,"'teaching of English'"="Education")
+data$field=recode(data$field,"'Theatre Management & Producing'"="Education")
+data$field=recode(data$field,"'Undergrad - GS'"="Education")
+data$field=recode(data$field,"'Urban Planning'"="Education")
+data$field=recode(data$field,"'Writing: Literary Nonfiction'"="Education")
+data$field=recode(data$field,"?"="Education")
+data$field=recode(data$field,"Acting"="Education")
+data$field=recode(data$field,"anthropology"="Science")
+data$field=recode(data$field,"Anthropology"="Science")
+data$field=recode(data$field,"Anthropology/Education"="Science")
+data$field=recode(data$field,"Architecture"="Science")
+data$field=recode(data$field,"Biochemistry"="Science")
+data$field=recode(data$field,"biochemistry/genetics"="Science")
+data$field=recode(data$field,"biology"="Science")
+data$field=recode(data$field,"Biology"="Science")
+data$field=recode(data$field,"biomedicine"="Science")
+data$field=recode(data$field,"biotechnology"="Science")
+data$field=recode(data$field,"Biotechnology"="Science")
+data$field=recode(data$field,"business"="Business")
+data$field=recode(data$field,"Business"="Business")
+data$field=recode(data$field,"Business/Law"="Business")
+data$field=recode(data$field,"chemistry"="Science")
+data$field=recode(data$field,"Chemistry"="Science")
+data$field=recode(data$field,"Classics"="Education")
+data$field=recode(data$field,"Communications"="Education")
+data$field=recode(data$field,"Consulting"="Education")
+data$field=recode(data$field,"Ecology"="Education")
+data$field=recode(data$field,"Economics"="Education")
+data$field=recode(data$field,"education"="Education")
+data$field=recode("Education"="Education",data$field)
+data$field=recode("EDUCATION"="Education",data$field)
+data$field=recode("engineering"="Engineering",data$field)
+data$field=recode("Engineering"="Engineering",data$field)
+data$field=recode("English"="Education",data$field)
+data$field=recode("epidemiology"="Science",data$field)
+data$field=recode("Epidemiology"="Science",data$field)
+data$field=recode("film"="Education",data$field)
+data$field=recode("Film"="Education",data$field)
+data$field=recode("Finanace"="Business",data$field)
+data$field=recode("Finance"="Business",data$field)
+data$field=recode("Finance&Economics"="Business",data$field)
+data$field=recode("Finance/Economics"="Business",data$field)
+data$field=recode("french"="Business",data$field)
+data$field=recode("genetics"="Science",data$field)
+data$field=recode("Genetics"="Science",data$field)
+data$field=recode("GSAS"="Education",data$field)
+data$field=recode("History"="Education",data$field)
+data$field=recode("journalism"="Education",data$field)
+data$field=recode("Journalism"="Education",data$field)
+data$field=recode(data$field,"law"="LAW")
+data$field=recode("Law"="LAW",data$field)
+data$field=recode("LAW"="LAW",data$field)
+data$field=recode("Law/Business"="LAW",data$field)
+data$field=recode("Marketing"="LAW",data$field)
+data$field=recode("math"="Science",data$field)
+data$field=recode("Math"="Science",data$field)
+data$field=recode("Mathematics"="Science",data$field)
+data$field=recode("MBA"="Science",data$field)
+data$field=recode("medicine"="Science",data$field)
+data$field=recode("Medicine"="Science",data$field)
+data$field=recode("microbiology"="Science",data$field)
+data$field=recode("Microbiology"="Science",data$field)
+data$field=recode("money"="Science",data$field)
+data$field=recode("Neurobiology"="Science",data$field)
+data$field=recode("Neuroscience"="Science",data$field)
+data$field=recode("nutrition"="Science",data$field)
+data$field=recode("Nutrition"="Science",data$field)
+data$field=recode("Nutrition/Geneticse"="Science",data$field)
+data$field=recode("Nutritiron"="Science",data$field)
+data$field=recode("philosophy"="Science",data$field)
+data$field=recode("Philosophy"="Science",data$field)
+data$field=recode("physics"="Science",data$field)
+data$field=recode("Physics"="Science",data$field)
+data$field=recode("Polish"="Education",data$field)
+data$field=recode("psychology"="Education",data$field)
+data$field=recode("Psychology"="Education",data$field)
+data$field=recode("QMSS"="Education",data$field)
+data$field=recode("Religion"="Education",data$field)
+data$field=recode("sociology"="Education",data$field)
+data$field=recode("Sociology"="Education",data$field)
+data$field=recode("Statistics"="Science",data$field)
+data$field=recode("Stats"="Science",data$field)
+data$field=recode("TESOL"="Education",data$field)
+data$field=recode("Theater"="Education",data$field)
+data$field=recode("theory"="Education",data$field)
+data$field=recode("working"="Education",data$field)
+# Plot raw field
+data$field <- tolower(data$field)
+barplot(table(data$field),main = "Careers")
+```
+
+Each variable has some factor variables of different notations including "[levels of points]", and "?" here the values are imputed based on the probability of highest value noted in each variable and revalued the different notations with highest value noted in the table.
+
+#PREPROCESSING
+ 
+```{r}
+#data$d_d_age - Renaming levels of a factor
+#str(data$d_d_age)
+data$d_d_age=revalue(data$d_d_age,c("[0-1]"="1"))
+data$d_d_age=revalue(data$d_d_age,c("[2-3]"="3"))
+data$d_d_age=revalue(data$d_d_age,c("[4-6]"="5"))
+data$d_d_age=revalue(data$d_d_age,c("[7-37]"="10"))
+#table(data$d_d_age)
+#data$d_importance_same_race - Renaming levels of a factor
+#str(data$d_importance_same_race)
+data$d_importance_same_race=revalue(data$d_importance_same_race,c("[0-1]"="1"))
+data$d_importance_same_race=revalue(data$d_importance_same_race,c("[2-5]"="5"))
+data$d_importance_same_race=revalue(data$d_importance_same_race,c("[6-10]"="8"))
+#table(data$d_importance_same_race)
+##data$d_importance_same_religion - 
+#str(data$d_importance_same_religion)
+data$d_importance_same_religion=revalue(data$d_importance_same_religion,c("[0-1]"="1"))
+data$d_importance_same_religion=revalue(data$d_importance_same_religion,c("[2-5]"="4"))
+data$d_importance_same_religion=revalue(data$d_importance_same_religion,c("[6-10]"="8"))
+#d_pref_o_attractive
+#str(data$d_pref_o_attractive)
+data$d_pref_o_attractive=revalue(data$d_pref_o_attractive,c("[0-15]"="10"))
+data$d_pref_o_attractive=revalue(data$d_pref_o_attractive,c("[16-20]"="18"))
+data$d_pref_o_attractive=revalue(data$d_pref_o_attractive,c("[21-100]"="75"))
+#d_pref_o_sincere
+#str(data$d_pref_o_sincere)
+data$d_pref_o_sincere=revalue(data$d_pref_o_sincere,c("[0-15]"="10"))
+data$d_pref_o_sincere=revalue(data$d_pref_o_sincere,c("[16-20]"="18"))
+data$d_pref_o_sincere=revalue(data$d_pref_o_sincere,c("[21-100]"="75"))
+#d_pref_o_intelligence
+#str(data$d_pref_o_intelligence)
+data$d_pref_o_intelligence=revalue(data$d_pref_o_intelligence,c("[0-15]"="10"))
+data$d_pref_o_intelligence=revalue(data$d_pref_o_intelligence,c("[16-20]"="18"))
+data$d_pref_o_intelligence=revalue(data$d_pref_o_intelligence,c("[21-100]"="75"))
+#d_pref_o_funny
+#str(data$d_pref_o_funny)
+data$d_pref_o_funny=revalue(data$d_pref_o_funny,c("[0-15]"="10"))
+data$d_pref_o_funny=revalue(data$d_pref_o_funny,c("[16-20]"="18"))
+data$d_pref_o_funny=revalue(data$d_pref_o_funny,c("[21-100]"="75"))
+#d_pref_o_ambitious
+#str(data$d_pref_o_ambitious)
+data$d_pref_o_ambitious=revalue(data$d_pref_o_ambitious,c("[0-15]"="10"))
+data$d_pref_o_ambitious=revalue(data$d_pref_o_ambitious,c("[16-20]"="18"))
+data$d_pref_o_ambitious=revalue(data$d_pref_o_ambitious,c("[21-100]"="75"))
+#d_pref_o_shared_interests
+#str(data$d_pref_o_shared_interests)
+data$d_pref_o_shared_interests=revalue(data$d_pref_o_shared_interests,c("[0-15]"="10"))
+data$d_pref_o_shared_interests=revalue(data$d_pref_o_shared_interests,c("[16-20]"="18"))
+data$d_pref_o_shared_interests=revalue(data$d_pref_o_shared_interests,c("[21-100]"="75"))
+#d_attractive_o
+#str(data$d_attractive_o)
+data$d_attractive_o=revalue(data$d_attractive_o,c("[0-5]"="4"))
+data$d_attractive_o=revalue(data$d_attractive_o,c("[6-8]"="7"))
+data$d_attractive_o=revalue(data$d_attractive_o,c("[9-10]"="9"))
+#d_sinsere_o
+#str(data$d_sinsere_o)
+data$d_sinsere_o=revalue(data$d_sinsere_o,c("[0-5]"="4"))
+data$d_sinsere_o=revalue(data$d_sinsere_o,c("[6-8]"="7"))
+data$d_sinsere_o=revalue(data$d_sinsere_o,c("[9-10]"="9"))
+#d_intelligence_o
+#str(data$d_intelligence_o)
+data$d_intelligence_o=revalue(data$d_intelligence_o,c("[0-5]"="4"))
+data$d_intelligence_o=revalue(data$d_intelligence_o,c("[6-8]"="7"))
+data$d_intelligence_o=revalue(data$d_intelligence_o,c("[9-10]"="9"))
+#d_funny_o
+#str(data$d_funny_o)
+data$d_funny_o=revalue(data$d_funny_o,c("[0-5]"="4"))
+data$d_funny_o=revalue(data$d_funny_o,c("[6-8]"="7"))
+data$d_funny_o=revalue(data$d_funny_o,c("[9-10]"="9"))
+#d_ambitous_o
+#str(data$d_ambitous_o)
+data$d_ambitous_o=revalue(data$d_ambitous_o,c("[0-5]"="4"))
+data$d_ambitous_o=revalue(data$d_ambitous_o,c("[6-8]"="7"))
+data$d_ambitous_o=revalue(data$d_ambitous_o,c("[9-10]"="9"))
+#d_shared_interests_o
+#str(data$d_shared_interests_o)
+data$d_shared_interests_o=revalue(data$d_shared_interests_o,c("[0-5]"="4"))
+data$d_shared_interests_o=revalue(data$d_shared_interests_o,c("[6-8]"="7"))
+data$d_shared_interests_o=revalue(data$d_shared_interests_o,c("[9-10]"="9"))
+#d_attractive_important
+#str(data$d_attractive_important)
+data$d_attractive_important=revalue(data$d_attractive_important,c("[0-15]"="10"))
+data$d_attractive_important=revalue(data$d_attractive_important,c("[16-20]"="18"))
+data$d_attractive_important=revalue(data$d_attractive_important,c("[21-100]"="75"))
+#d_sincere_important
+#str(data$d_sincere_important)
+data$d_sincere_important=revalue(data$d_sincere_important,c("[0-15]"="10"))
+data$d_sincere_important=revalue(data$d_sincere_important,c("[16-20]"="18"))
+data$d_sincere_important=revalue(data$d_sincere_important,c("[21-100]"="75"))
+#d_intellicence_important
+#str(data$d_intellicence_important)
+data$d_intellicence_important=revalue(data$d_intellicence_important,c("[0-15]"="10"))
+data$d_intellicence_important=revalue(data$d_intellicence_important,c("[16-20]"="18"))
+data$d_intellicence_important=revalue(data$d_intellicence_important,c("[21-100]"="75"))
+#d_funny_important
+#str(data$d_funny_important)
+data$d_funny_important=revalue(data$d_funny_important,c("[0-15]"="10"))
+data$d_funny_important=revalue(data$d_funny_important,c("[16-20]"="18"))
+data$d_funny_important=revalue(data$d_funny_important,c("[21-100]"="75"))
+#d_ambition_important
+#str(data$d_ambtition_important)
+data$d_ambtition_important=revalue(data$d_ambtition_important,c("[0-15]"="10"))
+data$d_ambtition_important=revalue(data$d_ambtition_important,c("[16-20]"="18"))
+data$d_ambtition_important=revalue(data$d_ambtition_important,c("[21-100]"="75"))
+#d_shared_interests_important
+#str(data$d_shared_interests_important)
+data$d_shared_interests_important=revalue(data$d_shared_interests_important,c("[0-15]"="10"))
+data$d_shared_interests_important=revalue(data$d_shared_interests_important,c("[16-20]"="18"))
+data$d_shared_interests_important=revalue(data$d_shared_interests_important,c("[21-100]"="75"))
+#d_attractive
+#str(data$d_attractive)
+data$d_attractive=revalue(data$d_attractive,c("[0-5]"="4"))
+data$d_attractive=revalue(data$d_attractive,c("[6-8]"="7"))
+data$d_attractive=revalue(data$d_attractive,c("[9-10]"="9"))
+#d_sincere
+#str(data$d_sincere)
+data$d_sincere=revalue(data$d_sincere,c("[0-5]"="4"))
+data$d_sincere=revalue(data$d_sincere,c("[6-8]"="7"))
+data$d_sincere=revalue(data$d_sincere,c("[9-10]"="9"))
+#d_intelligence
+#str(data$d_intelligence)
+data$d_intelligence=revalue(data$d_intelligence,c("[0-5]"="4"))
+data$d_intelligence=revalue(data$d_intelligence,c("[6-8]"="7"))
+data$d_intelligence=revalue(data$d_intelligence,c("[9-10]"="9"))
+#d_funny
+#str(data$d_funny)
+data$d_funny=revalue(data$d_funny,c("[0-5]"="4"))
+data$d_funny=revalue(data$d_funny,c("[6-8]"="7"))
+data$d_funny=revalue(data$d_funny,c("[9-10]"="9"))
+#d_ambition
+#str(data$d_ambition)
+data$d_ambition=revalue(data$d_ambition,c("[0-5]"="4"))
+data$d_ambition=revalue(data$d_ambition,c("[6-8]"="7"))
+data$d_ambition=revalue(data$d_ambition,c("[9-10]"="9"))
+#d_attractive_partner
+#str(data$d_attractive_partner)
+data$d_attractive_partner=revalue(data$d_attractive_partner,c("[0-5]"="4"))
+data$d_attractive_partner=revalue(data$d_attractive_partner,c("[6-8]"="7"))
+data$d_attractive_partner=revalue(data$d_attractive_partner,c("[9-10]"="9"))
+#d_sincere_partner
+#str(data$d_sincere_partner)
+data$d_sincere_partner=revalue(data$d_sincere_partner,c("[0-5]"="4"))
+data$d_sincere_partner=revalue(data$d_sincere_partner,c("[6-8]"="7"))
+data$d_sincere_partner=revalue(data$d_sincere_partner,c("[9-10]"="9"))
+#d_intelligence_partner
+#str(data$d_intelligence_partner)
+data$d_intelligence_partner=revalue(data$d_intelligence_partner,c("[0-5]"="4"))
+data$d_intelligence_partner=revalue(data$d_intelligence_partner,c("[6-8]"="7"))
+data$d_intelligence_partner=revalue(data$d_intelligence_partner,c("[9-10]"="9"))
+#d_funny_partner
+#str(data$d_funny_partner)
+data$d_funny_partner=revalue(data$d_funny_partner,c("[0-5]"="4"))
+data$d_funny_partner=revalue(data$d_funny_partner,c("[6-8]"="7"))
+data$d_funny_partner=revalue(data$d_funny_partner,c("[9-10]"="9"))
+#d_ambitous_partner
+#str(data$d_ambition_partner)
+data$d_ambition_partner=revalue(data$d_ambition_partner,c("[0-5]"="4"))
+data$d_ambition_partner=revalue(data$d_ambition_partner,c("[6-8]"="7"))
+data$d_ambition_partner=revalue(data$d_ambition_partner,c("[9-10]"="9"))
+#d_shared_interests_o
+#str(data$d_shared_interests_partner)
+data$d_shared_interests_partner=revalue(data$d_shared_interests_partner,c("[0-5]"="4"))
+data$d_shared_interests_partner=revalue(data$d_shared_interests_partner,c("[6-8]"="7"))
+data$d_shared_interests_partner=revalue(data$d_shared_interests_partner,c("[9-10]"="9"))
+#d_sports
+#str(data$d_sports)
+data$d_sports=revalue(data$d_sports,c("[0-5]"="3"))
+data$d_sports=revalue(data$d_sports,c("[6-8]"="7"))
+data$d_sports=revalue(data$d_sports,c("[9-10]"="9"))
+#d_tvsports
+#str(data$d_tvsports)
+data$d_tvsports=revalue(data$d_tvsports,c("[0-5]"="3"))
+data$d_tvsports=revalue(data$d_tvsports,c("[6-8]"="7"))
+data$d_tvsports=revalue(data$d_tvsports,c("[9-10]"="9"))
+#d_exercise
+#str(data$d_exercise)
+data$d_exercise=revalue(data$d_exercise,c("[0-5]"="3"))
+data$d_exercise=revalue(data$d_exercise,c("[6-8]"="7"))
+data$d_exercise=revalue(data$d_exercise,c("[9-10]"="9"))
+#d_dining
+#str(data$d_dining)
+data$d_dining=revalue(data$d_dining,c("[0-5]"="3"))
+data$d_dining=revalue(data$d_dining,c("[6-8]"="7"))
+data$d_dining=revalue(data$d_dining,c("[9-10]"="9"))
+#d_museums
+#str(data$d_museums)
+data$d_museums=revalue(data$d_museums,c("[0-5]"="3"))
+data$d_museums=revalue(data$d_museums,c("[6-8]"="7"))
+data$d_museums=revalue(data$d_museums,c("[9-10]"="9"))
+#d_art
+#str(data$d_art)
+data$d_art=revalue(data$d_art,c("[0-5]"="3"))
+data$d_art=revalue(data$d_art,c("[6-8]"="7"))
+data$d_art=revalue(data$d_art,c("[9-10]"="9"))
+#d_hiking
+#str(data$d_hiking)
+data$d_hiking=revalue(data$d_hiking,c("[0-5]"="3"))
+data$d_hiking=revalue(data$d_hiking,c("[6-8]"="7"))
+data$d_hiking=revalue(data$d_hiking,c("[9-10]"="9"))
+#d_gaming
+#str(data$d_gaming)
+data$d_gaming=revalue(data$d_gaming,c("[0-5]"="3"))
+data$d_gaming=revalue(data$d_gaming,c("[6-8]"="7"))
+data$d_gaming=revalue(data$d_gaming,c("[9-10]"="9"))
+#d_clubbing
+#str(data$d_clubbing)
+data$d_clubbing=revalue(data$d_clubbing,c("[0-5]"="3"))
+data$d_clubbing=revalue(data$d_clubbing,c("[6-8]"="7"))
+data$d_clubbing=revalue(data$d_clubbing,c("[9-10]"="9"))
+#d_reading
+#str(data$d_reading)
+data$d_reading=revalue(data$d_reading,c("[0-5]"="3"))
+data$d_reading=revalue(data$d_reading,c("[6-8]"="7"))
+data$d_reading=revalue(data$d_reading,c("[9-10]"="9"))
+#d_tv
+#str(data$d_tv)
+data$d_tv=revalue(data$d_tv,c("[0-5]"="3"))
+data$d_tv=revalue(data$d_tv,c("[6-8]"="7"))
+data$d_tv=revalue(data$d_tv,c("[9-10]"="9"))
+#d_theater
+#str(data$d_theater)
+data$d_theater=revalue(data$d_theater,c("[0-5]"="3"))
+data$d_theater=revalue(data$d_theater,c("[6-8]"="7"))
+data$d_theater=revalue(data$d_theater,c("[9-10]"="9"))
+#d_movies
+#str(data$d_movies)
+data$d_movies=revalue(data$d_movies,c("[0-5]"="3"))
+data$d_movies=revalue(data$d_movies,c("[6-8]"="7"))
+data$d_movies=revalue(data$d_movies,c("[9-10]"="9"))
+#d_concerts
+#str(data$d_concerts)
+data$d_concerts=revalue(data$d_concerts,c("[0-5]"="3"))
+data$d_concerts=revalue(data$d_concerts,c("[6-8]"="7"))
+data$d_concerts=revalue(data$d_concerts,c("[9-10]"="9"))
+#d_music
+#str(data$d_music)
+data$d_music=revalue(data$d_music,c("[0-5]"="3"))
+data$d_music=revalue(data$d_music,c("[6-8]"="7"))
+data$d_music=revalue(data$d_music,c("[9-10]"="9"))
+#d_shopping
+#str(data$d_shopping)
+data$d_shopping=revalue(data$d_shopping,c("[0-5]"="3"))
+data$d_shopping=revalue(data$d_shopping,c("[6-8]"="7"))
+data$d_shopping=revalue(data$d_shopping,c("[9-10]"="9"))
+#d_yoga
+#str(data$d_yoga)
+data$d_yoga=revalue(data$d_yoga,c("[0-5]"="3"))
+data$d_yoga=revalue(data$d_yoga,c("[6-8]"="7"))
+data$d_yoga=revalue(data$d_yoga,c("[9-10]"="9"))
+#d_expected_happy_with_sd_peple
+#str(data$d_expected_happy_with_sd_people)
+data$d_expected_happy_with_sd_people=revalue(data$d_expected_happy_with_sd_people,c("[0-4]"="2"))
+data$d_expected_happy_with_sd_people=revalue(data$d_expected_happy_with_sd_people,c("[5-6]"="6"))
+data$d_expected_happy_with_sd_people=revalue(data$d_expected_happy_with_sd_people,c("[7-10]"="8"))
+#d_expected_num_interested_in_me
+#str(data$d_expected_num_interested_in_me)
+data$d_expected_num_interested_in_me=revalue(data$d_expected_num_interested_in_me,c("[0-3]"="2"))
+data$d_expected_num_interested_in_me=revalue(data$d_expected_num_interested_in_me,c("[10-20]"="15"))
+data$d_expected_num_interested_in_me=revalue(data$d_expected_num_interested_in_me,c("[4-9]"="7"))
+#d_expected_num_matches
+#str(data$d_expected_num_matches)
+data$d_expected_num_matches=revalue(data$d_expected_num_matches,c("[0-2]"="1"))
+data$d_expected_num_matches=revalue(data$d_expected_num_matches,c("[3-5]"="4"))
+data$d_expected_num_matches=revalue(data$d_expected_num_matches,c("[5-18]"="11"))
+#d_like
+#str(data$d_like)
+data$d_like=revalue(data$d_like,c("[0-5]"="3"))
+data$d_like=revalue(data$d_like,c("[6-8]"="7"))
+data$d_like=revalue(data$d_like,c("[9-10]"="9"))
+#d_guess_partner_liked
+#str(data$d_guess_prob_liked)
+data$d_guess_prob_liked=revalue(data$d_guess_prob_liked,c("[0-4]"="2"))
+data$d_guess_prob_liked=revalue(data$d_guess_prob_liked,c("[5-6]"="5.5"))
+data$d_guess_prob_liked=revalue(data$d_guess_prob_liked,c("[7-10]"="8.5"))
+#table(data$age) # Checking for the maxi levels in the data for variable age
+data$age=revalue(data$age,c("?"="27")) #Imputing the "?" of the age variable to 27 which is listed higher
+#revalue age_o
+data$age_o=revalue(data$age_o,c("?"="27"))
+#table(data$age_o)
+#revalue importance_same_race
+data$importance_same_race=revalue(data$importance_same_race,c("?"="1"))
+#table(data$importance_same_race)
+#revalue importance_same_religion
+data$importance_same_religion=revalue(data$importance_same_religion,c("?"="1"))
+#table(data$importance_same_religion)
+#revalue pref_o_attractive
+data$pref_o_attractive=revalue(data$pref_o_attractive,c("?"="15"))
+#table(data$pref_o_attractive)
+#revalue pref_o_sincere
+#table(data$pref_o_sincere)
+data$pref_o_sincere=revalue(data$pref_o_sincere,c("?"="20"))
+#revalue pref_o_intellignece
+data$pref_o_intelligence=revalue(data$pref_o_intelligence,c("?"="20"))
+#table(data$pref_o_intelligence)
+#revalue pref_o_funny
+data$pref_o_funny=revalue(data$pref_o_funny,c("?"="20"))
+#table(data$pref_o_funny)
+#revalue pref_o_ambitious
+data$pref_o_ambitious=revalue(data$pref_o_ambitious,c("?"="10"))
+#table(data$pref_o_ambitious)
+#revalue pref_o_shared_interests
+data$pref_o_shared_interests=revalue(data$pref_o_shared_interests,c("?"="10"))
+#table(data$pref_o_shared_interests)
+#revalue attractive _o
+data$attractive_o=revalue(data$attractive_o,c("?"="6"))
+#table(data$attractive_o)
+#revalue sinsere_o
+data$sinsere_o=revalue(data$sinsere_o,c("?"="7"))
+#table(data$sinsere_o)
+#revalue intelligence_o
+data$intelligence_o=revalue(data$intelligence_o,c("?"="8"))
+#table(data$intelligence_o)
+#revalue funny_o
+data$funny_o=revalue(data$funny_o,c("?"="7"))
+#table(data$funny_o)
+#revalue ambitous_o
+data$ambitous_o=revalue(data$ambitous_o,c("?"="7"))
+#table(data$ambitous_o)
+#revalue shared_interests_o
+data$shared_interests_o=revalue(data$shared_interests_o,c("?"="5"))
+#table(data$shared_interests_o)
+#revalue attractive_important
+data$attractive_important=revalue(data$attractive_important,c("?"="20"))
+#table(data$attractive_important)
+#revalue sincere _important
+data$sincere_important=revalue(data$sincere_important,c("?"="20"))
+#table(data$sincere_important)
+#revalue intellicence_important
+data$intellicence_important=revalue(data$intellicence_important,c("?"="20"))
+#table(data$intellicence_important)
+#revalue funny_important
+data$funny_important=revalue(data$funny_important,c("?"="20"))
+#table(data$funny_important)
+#revalue ambtition important
+data$ambtition_important=revalue(data$ambtition_important,c("?"="10"))
+#table(data$ambtition_important)
+#revalue shared_interests_important
+data$shared_interests_important=revalue(data$shared_interests_important,c("?"="10"))
+#table(data$shared_interests_important)
+#revalue attractive
+data$attractive=revalue(data$attractive,c("?"="7"))
+#table(data$attractive)
+#revalue sincere
+data$sincere=revalue(data$sincere,c("?"="9"))
+#table(data$sincere)
+#revalue intelligence
+#table(data$intelligence)
+data$intelligence=revalue(data$intelligence,c("?"="8"))
+#revalue funny
+#table(data$funny)
+data$funny=revalue(data$funny,c("?"="9"))
+#revalue ambition
+#table(data$ambition)
+data$ambition=revalue(data$ambition,c("?"="8"))
+#revalue sincere_partner
+#table(data$sincere_partner)
+data$sincere_partner=revalue(data$sincere_partner,c("?"="9"))
+#revalue intelligence_partner
+#table(data$intelligence_partner)
+data$intelligence_partner=revalue(data$intelligence_partner,c("?"="8"))
+#revalue funny_partner
+#table(data$funny_partner)
+data$funny_partner=revalue(data$funny_partner,c("?"="6"))
+#revalue ambition_partner
+#table(data$ambition_partner)
+data$ambition_partner=revalue(data$ambition_partner,c("?"="7"))
+#revalue shared_interests partern
+#table(data$shared_interests_partner)
+data$shared_interests_partner=revalue(data$shared_interests_partner,c("?"="5"))
+#revalue sports
+#table(data$sports)
+data$sports=revalue(data$sports,c("?"="8"))
+#revalue tvsports
+#table(data$tvsports)
+data$tvsports=revalue(data$tvsports,c("?"="1"))
+#revalue exercise
+#table(data$exercise)
+data$exercise=revalue(data$exercise,c("?"="8"))
+#revalue dining
+#table(data$dining)
+data$dining=revalue(data$dining,c("?"="8"))
+#musemus
+#table(data$museums)
+data$museums=revalue(data$museums,c("?"="8"))
+#art
+#table(data$art)
+data$art=revalue(data$art,c("?"="8"))
+#hiking
+#table(data$hiking)
+data$hiking=revalue(data$hiking,c("?"="8"))
+#gaming
+#table(data$gaming)
+data$gaming=revalue(data$gaming,c("?"="1"))
+#clubbing
+#table(data$clubbing)
+data$clubbing=revalue(data$clubbing,c("?"="8"))
+#reading
+#table(data$reading)
+data$reading=revalue(data$reading,c("?"="9"))
+#tv
+#table(data$tv)
+data$funny=revalue(data$funny,c("?"="5"))
+#theater
+#table(data$theater)
+data$theater=revalue(data$theater,c("?"="7"))
+#movies
+#table(data$movies)
+data$movies=revalue(data$movies,c("?"="8"))
+#concerts
+#table(data$concerts)
+data$concerts=revalue(data$concerts,c("?"="8"))
+#music
+#table(data$music)
+data$music=revalue(data$music,c("?"="8"))
+#shopping
+#table(data$shopping)
+data$shopping=revalue(data$shopping,c("?"="7"))
+#yoga
+#table(data$yoga)
+data$yoga=revalue(data$yoga,c("?"="1"))
+#expected_happy_with sd_people
+#table(data$expected_happy_with_sd_people)
+data$expected_happy_with_sd_people=revalue(data$expected_happy_with_sd_people,c("?"="5"))
+#expected_num_intereste_in me
+#table(data$expected_num_interested_in_me)
+data$expected_num_interested_in_me=revalue(data$expected_num_interested_in_me,c("?"="2"))
+#expected num of matches
+#table(data$expected_num_matches)
+data$expected_num_matches=revalue(data$expected_num_matches,c("?"="2"))
+#d_expected happy with sd people
+#table(data$d_expected_happy_with_sd_people)
+#d_expected num inte in me
+#table(data$d_expected_num_interested_in_me)
+#d_exp_num_matchs
+#table(data$d_expected_num_matches)
+#like
+#table(data$like)
+data$like=revalue(data$like,c("?"="7"))
+#guess_prob_like
+#table(data$guess_prob_liked)
+data$guess_prob_liked=revalue(data$guess_prob_liked,c("?"="5"))
+#d_like
+#table(data$d_like)
+#d_guess_prob like
+#table(data$d_guess_prob_liked)
+#met
+#table(data$met)
+data$met=revalue(data$met,c("?"="1"))
+#decision
+#table(data$decision)
+#decision_o
+#table(data$decision_o)
+#table(data$match)
+#race
+data$race=revalue(data$race,c("?"="European/Caucasian-American"))
+#race_o
+data$race_o=revalue(data$race_o,c("?"="European/Caucasian-American"))
+#tv
+data$tv=revalue(data$tv,c("?"="6"))
+#attractive partner
+data$attractive_partner=revalue(data$attractive_partner,c("?"="6"))
+```
+
+After the data has been revalued the unwanted variable is dropped and writed the new imputed data into a CSV file to process in the PYTHON FOR CLASSIFICATION
+
+```{r}
+speed<-data[,-c(3,8,9,15,108,109)]
+dim(speed)
+#write.csv(speed,"data2.csv")
+```
+
+#=========================================================================================
+
+```{r}
+speed[1:10,1:10]
+matching<-sum(speed$match=='0')/8378
+nonmatch<-sum(speed$match=='1')/8378
+dat<-data.frame(match=factor(c("matching","nonmatch")),percent=c(nonmatch,matching))
+ggplot(data=dat,aes(x=match,y=percent,fill=match))+geom_bar(color="black",stat="identity")
+```
+#=========================================================================================
+
+#ASSOCIATON RULES - WITH ACTUAL DATASET
+
+```{r}
+speed.arules<-data[,-c(108,109)]
+dim(speed.arules)
+#write.csv(speed.arules,"arules.csv")
+library(arules);library(arulesViz); library(arulesCBA)
+speed.arules[,names(speed.arules)]<-lapply(speed.arules[,names(speed.arules)],factor)
+speed.arules<-as(speed.arules,"transactions")
+itemFrequencyPlot(speed.arules[, itemFrequency(speed.arules) > 0.5], cex.names = 0.6)
+rules1 <- apriori(data = speed.arules , parameter = list( supp = 0.001 , conf = 0.7) , appearance = list(default = "lhs" , rhs = "match=1") )
+rules1<-sort(rules1 , decreasing = TRUE , by = 'lift')
+## Sorting rules based on confidence,printing the rules
+inspect(rules1[1:10])
+## Ploting the generated rules
+plot(rules1, measure=c("support", "lift"), shading="confidence")
+#reduce the number of rules here by filtering out all rules with a low confidence score.
+head(quality(rules1))
+#subrules <- rules1[quality(rules1)$confidence > 0.8]
+#inspect(rules1[1:50])
+#plot(subrules, method="matrix3D", measure="lift", control=list(reorder=TRUE))
+#Re-running association rules with support = 0.0012 and confidence = 0.9
+## Association rule generation
+#rules2 <- apriori(data = speed.arules , parameter = list( supp = 0.0012 , conf = 0.9) , appearance = list(default = "lhs" , rhs = "match=1") )
+## Sorting rules based on confidence
+#rules2 <- sort(rules2 , decreasing = TRUE , by = 'confidence')
+## Printing the rules
+#inspect(rules2)
+#plot(rules2, measure=c("support", "lift"), shading="confidence")
+```
+#ASSOCIATON RULES WITH IMPUTED DATA
+```{r}
+data2.arules<-data[,-c(1,2,9,108,109,119,117,121,122,110,111,112,113,114,115)]
+dim(data2.arules)
+#write.csv(speed.arules,"arules.csv")
+library(arules);library(arulesViz); library(arulesCBA)
+data2.arules[,names(data2.arules)]<-lapply(data2.arules[,names(data2.arules)],factor)
+data2.arules<-as(data2.arules,"transactions")
+itemFrequencyPlot(data2.arules[, itemFrequency(data2.arules) > 0.5], cex.names = 0.6)
+data2.rules1 <- apriori(data = data2.arules , parameter = list( supp = 0.001 , conf = 0.95) , appearance = list(default = "lhs" , rhs = "match=0") )
+data2.rules1<-sort(data2.rules1 , decreasing = TRUE , by = 'lift')
+## Sorting rules based on confidence,printing the rules
+inspect(data2.rules1[1:20])
+## Ploting the generated rules
+plot(data2.rules1,method="graph")
+#reduce the number of rules here by filtering out all rules with a low confidence score.
+```
+
+```{r}
+speed.arules.disc<-as.data.frame(lapply(speed.arules[1:120],function(x)discretize(x,categories=2)))
+```
+
+#ASSOCIATION RULES - PERSONAL SIDE ASSOCIATION(ONESIDE)
+```{r}
+oneside=read.csv("https://raw.githubusercontent.com/vigneshjmurali/Statistical-Predictive-Modelling/master/Datasets/attributes%20of%20data.csv")
+oneside<-oneside[,-c(61)]
+dim(oneside)
+#View(oneside)
+oneside[,names(oneside)]<-lapply(oneside[,names(oneside)],factor)
+oneside<-as(oneside,"transactions")
+itemFrequencyPlot(oneside[, itemFrequency(oneside) > 0.5], cex.names = 0.6)
+
+rules1.oneside <- apriori(data = oneside , parameter = list( supp = 0.001 , conf = 0.9) , appearance = list(default = "lhs" , rhs = "match=0") )
+rules1<-sort(rules1.oneside , decreasing = TRUE , by = 'lift')
+## Sorting rules based on confidence,printing the rules
+inspect(rules1[1:10])
+```
+#ASSOCIATION RULES - PARTNER SIDE ASSOCIATION(OTHERSIDE)
+```{r}
+partnerside=read.csv("https://raw.githubusercontent.com/vigneshjmurali/Statistical-Predictive-Modelling/master/Datasets/attributes%20of%20data1.csv")
+partnerside<-partnerside[,-c(61)]
+dim(partnerside)
+#View(oneside)
+partnerside[,names(partnerside)]<-lapply(partnerside[,names(partnerside)],factor)
+partnerside<-as(partnerside,"transactions")
+itemFrequencyPlot(partnerside[, itemFrequency(partnerside) > 0.5], cex.names = 0.6)
+
+rules1.partnerside <- apriori(data = partnerside , parameter = list( supp = 0.001 , conf = 0.9) , appearance = list(default = "lhs" , rhs = "match=0") )
+rules1.partnerside<-sort(rules1.partnerside , decreasing = TRUE , by = 'lift')
+## Sorting rules based on confidence,printing the rules
+inspect(rules1.partnerside[1:10])
+
+#BY REMOVING D_AGE 
+partnerside=read.csv("https://raw.githubusercontent.com/vigneshjmurali/Statistical-Predictive-Modelling/master/Datasets/attributes%20of%20data1.csv")
+partnerside<-partnerside[,-c(61)]
+dim(partnerside)
+#View(oneside)
+partnerside[,names(partnerside)]<-lapply(partnerside[,names(partnerside)],factor)
+partnerside<-as(partnerside,"transactions")
+itemFrequencyPlot(partnerside[, itemFrequency(partnerside) > 0.5], cex.names = 0.6)
+
+rules1.partnerside <- apriori(data = partnerside , parameter = list( supp = 0.001 , conf = 0.9) , appearance = list(default = "lhs" , rhs = "match=0") )
+rules1.partnerside<-sort(rules1.partnerside , decreasing = TRUE , by = 'lift')
+## Sorting rules based on confidence,printing the rules
+inspect(rules1.partnerside[1:10])
+```
+
+#ASSOCIATION RULES - SPECIFIC INTEREST ARULES
+```{r}
+SP=read.csv("https://raw.githubusercontent.com/vigneshjmurali/Statistical-Predictive-Modelling/master/Datasets/SPECIFIC%20INTEREST_ARULES.csv")
+#oneside<-oneside[,-c(61)]
+dim(SP)
+#View(oneside)
+SP[,names(SP)]<-lapply(SP[,names(SP)],factor)
+SP<-as(SP,"transactions")
+itemFrequencyPlot(SP[, itemFrequency(SP) > 0.5], cex.names = 0.6)
+
+rules1.SP <- apriori(data = SP , parameter = list( supp = 0.001 , conf = 0.9) , appearance = list(default = "lhs" , rhs = "match=0") )
+rules1.SP<-sort(rules1.SP , decreasing = TRUE , by = 'lift')
+## Sorting rules based on confidence,printing the rules
+inspect(rules1.SP[1:10])
+
+```
+
+#============================================================================================
+
+#CLUSTER ANALYSIS - ACTUAL DATASET
+```{r}
+data.clus=read.csv("https://raw.githubusercontent.com/vigneshjmurali/Statistical-Predictive-Modelling/master/Datasets/data2.csv")
+dim(data.clus)
+data.clus<-data.clus[,-c(1,115,116,117)]
+dim(data.clus)
+```
+#CLUSTERING FOR WHOLE DATASET
+
+```{r}
+data.clus.s=scale(data.clus)
+data.clus.pca=prcomp(data.clus)
+data.clus.pca$rotation[1:5,1:5]
+data.clus.sd=data.clus.pca$sdev
+data.clus.var=data.clus.pca$sdev^2 
+data.clus.var[1:10]
+# Proportion of variance 
+pve=data.clus.var/sum(data.clus.var) 
+which.max(cumsum(pve)[cumsum(pve)<0.85])
+cumsum(pve[11]) 
+fviz_screeplot(data.clus.pca,ncp=11,choice="eigenvalue")
+plot(cumsum(pve),xlab="Principal Component", ylab="Cumulative Proportion of variance explained",ylim=c(0,1),type='b')
+biplot(data.clus.pca,arrow.len=0)
+data.clus_Classes<- factor(data.clus$match)
+plot(main="Different Groups",data.clus.pca$x[,1:11],col=data.clus_Classes)
+
+# Choosing the principle components as new variables based on the total variance
+data.clus_new=data.clus.pca$x[,1:11] 
+data.clus_new.s=scale(data.clus_new) 
+actualfit=kmeans(data.clus_new,5,nstart=50)
+plotcluster(data.clus_new,actualfit$cluster)
+
+# OPTIMAL NUMBER OF CLUSTERS - (1) WSS, (2) Silhouette, (3) Gap_stat, (4) NbClust # For PC 1 to PC 11
+set.seed(10)
+fviz_nbclust(data.clus_new,kmeans,method="wss") # Using elbow method - wss
+fviz_nbclust(data.clus_new,kmeans,method="gap_stat")
+fviz_nbclust(data.clus_new,kmeans,method="silhouette")
+#NBCLUST
+data.clus.nbclust<-data.clus_new %>% #Using NbClust 
+ scale() %>% 
+  NbClust(distance="euclidean",min.nc=5,max.nc=15,method="complete",index="all")
+#MCLUST
+data.clus.mclust<-Mclust(data.clus_new.s) 
+summary(data.clus.mclust)
+fviz_mclust(data.clus.mclust,"BIC",palette="jco")
+fviz_mclust(data.clus.mclust,"classification",geom="point",pointsize=1.5, palette="jco")
+# fazzy clustering
+gap<-kmeans(data.clus_new.s,centers=7,iter.max=100,nstart=25)
+fviz_cluster(gap,data=data.clus_new.s,ellipse.type="convex",palette="jco",repel=TRUE,ggtheme=theme_minimal())
+#Hierarchial Clustering with K=2 
+hc.ward=hclust(dist(data.clus_new,method="euclidean"),method="ward.D2") #Dendogram 
+plot(hc.ward, main="Complete Linkage",xlab="",cex=.9) #Drawing dendogram with red borders around the clusters 
+rect.hclust(hc.ward,k=7,border="red")
+#groups2=cutree(hc.ward,7)#Cut Tree into 2 clusters 
+#clusplot(data.clus_new,groups2,color=TRUE, shade = TRUE, labels=2, lines=0, main='Group segments')
+```
+
+#CLUSTER ANALYSIS - ATTRIBUTES OF DATA - ONE PERSON SIDE(PERSONAL SIDE DATA)
+```{r}
+attributes=read.csv("https://raw.githubusercontent.com/vigneshjmurali/Statistical-Predictive-Modelling/master/Datasets/attributes%20of%20data.csv")
+dim(attributes)
+data.attri<-attributes[,-c(1,5,9,61,62)] ; dim(data.attri)
+data.attri.mat<-as.matrix(data.attri)
+data.attri.pca<-prcomp(data.attri.mat)
+data.attri.pca$rotation[1:5,1:5]
+data.attri.sd=data.attri.pca$sdev; data.attri.var=data.attri.pca$sdev^2 #To compute variance 
+data.attri.var[1:5] ; pve=data.attri.var/sum(data.attri.var) ; cumsum(pve[1:10])
+fviz_screeplot(data.attri.pca,np=60,choice="eigenvalue")
+plot(cumsum(pve),xlab="Principal Component", ylab="Cumulative Proportion of variance explained",ylim=c(0,1),type='b')
+which.max(cumsum(pve)[cumsum(pve)<0.90]) ; biplot(data.attri.pca)
+#Choosing the principle components as new variables
+data.attri.new=data.attri.pca$x[,1:18] ; data.attri.new.s=scale(data.attri.new)
+
+#K means clustering
+set.seed(10) 
+fviz_nbclust(data.attri.new,kmeans,method="wss")
+fviz_nbclust(data.attri.new,kmeans,method="silhouette")
+fviz_nbclust(data.attri.new,kmeans,method="gap_stat")
+#NBCLUST - use unless you want to have to wait for long time
+data.attri.nbclust<-data.attri.new %>% #Using NbClust 
+  scale() %>% 
+  NbClust(distance="euclidean",min.nc=2,max.nc=15,method="complete",index="all")
+#fuzzy kmeans
+set.seed(10) 
+km_11_2.fit=kmeans(data.attri.new,4,nstart=50)
+plotcluster(data.attri.new,km_11_2.fit$cluster)
+fviz_cluster(km_11_2.fit,data=data.attri.new,ellipse.type="convex",palette="jco",ggtheme=theme_minimal())
+
+#MCLUST
+data.attri.fit<-Mclust(data.attri.new.s[,0:18]) 
+summary(data.attri.fit)
+fviz_mclust(data.attri.fit,"BIC",palette="jco")
+fviz_mclust(data.attri.fit,"classification",geom="point",pointsize=1.5, palette="jco")
+fviz_mclust(data.attri.fit,"uncertainty", palette="jco")
+
+#data.attri.group<-data.frame(data.attri.new,km_11_8.fit$cluster)
+#write.csv(data.attri.group$km_11_8.fit.cluster,"attri_group_8clus.csv")
+```
+
+#CLUSTER ANALYSIS - ATTRIBUTES OF DATA - OTHER PERSON SIDE(PARTNER SIDE DATA) 
+```{r}
+attributes1=read.csv("https://raw.githubusercontent.com/vigneshjmurali/Statistical-Predictive-Modelling/master/Datasets/attributes%20of%20data1.csv")
+dim(attributes1)
+data.attri1<-attributes1[,-c(1,5,9,61,62)]
+dim(data.attri1)
+data.attri1.mat<-as.matrix(data.attri1)
+data.attri1.pca<-prcomp(data.attri1.mat)
+data.attri1.pca$rotation[1:5,1:5]
+data.attri1.sd=data.attri1.pca$sdev; data.attri1.var=data.attri1.pca$sdev^2 #To compute variance 
+data.attri1.var[1:5]
+pve=data.attri1.var/sum(data.attri1.var) ; cumsum(pve[1:10])
+fviz_screeplot(data.attri1.pca,np=10,choice="eigenvalue")
+plot(cumsum(pve),xlab="Principal Component", ylab="Cumulative Proportion of variance explained",ylim=c(0,1),type='b')
+which.max(cumsum(pve)[cumsum(pve)<0.90])
+
+
+#biplot(data.attri.pca)
+#Choosing the principle components as new variables
+
+data.attri1.new=data.attri1.pca$x[,1:8]
+data.attri1.new.s=scale(data.attri1.new)
+#K means clustering
+set.seed(10) 
+fviz_nbclust(data.attri1.new,kmeans,method="wss") #k=4
+fviz_nbclust(data.attri1.new,kmeans,method="silhouette") # k=9
+fviz_nbclust(data.attri1.new,kmeans,method="gap_stat") #k=5
+
+#NBCLUST - use unless you want to have to wait for long time
+data.attri1.nbclust<-data.attri1.new %>% #Using NbClust 
+  scale() %>% 
+  NbClust(distance="euclidean",min.nc=2,max.nc=15,method="complete",index="all")
+
+#fuzzy kmeans
+set.seed(10)
+km_11_2_attri1.fit=kmeans(data.attri1.new,8,nstart=50)
+plotcluster(data.attri1.new,km_11_2_attri1.fit$cluster)
+fviz_cluster(km_11_2_attri1.fit,data=data.attri1.new,ellipse.type="convex",palette="jco",ggtheme=theme_minimal())
+
+#MCLUST
+data.attri1.fit<-Mclust(data.attri1.new.s[,0:8]) 
+summary(data.attri1.fit)
+data.attri1.fit$modelName 
+fviz_mclust(data.attri1.fit,"BIC",palette="jco")
+fviz_mclust(data.attri1.fit,"classification",geom="point",pointsize=1.5, palette="jco")
+fviz_mclust(data.attri1.fit,"uncertainty", palette="jco")
+
+data.attri1.group<-data.frame(data.attri1.new,km_11_8_attri1.fit$cluster)
+#write.csv(data.attri1.group$km_11_8_attri1.fit.cluster,"attri_group1_8clus.csv")
+
+```
+#==============================================================================
+#COMPARISON OF THE TARGET AFTER CLUSTERING
+
+```{r}
+comparison=read.csv("https://raw.githubusercontent.com/vigneshjmurali/Statistical-Predictive-Modelling/master/Datasets/clustervsactual%20match.csv")
+barplot(comparison)
+str(comparison)
+dim(comparison)
+cor(comparison$cluster.match,comparison$actual.match)
+hist(comparison$cluster.match)
+hist(comparison$actual.match)
+a<-with(comparison,which(comparison$cluster.match!=comparison$actual.match))
+b<-data.clus$match==0
+#######
+#check the response
+par(mfrow=c(1,2))
+notmatching<-sum(comparison$actual.match==0)/nrow(comparison)
+matching<-sum(comparison$actual.match==1)/nrow(comparison)
+dat <- data.frame(
+  matching_status_actual.match = factor(c("notmatching","matching"), levels=c("notmatching","matching")),percent = c( notmatching,matching))
+ggplot(data=dat, aes(x=matching_status_actual.match, y=percent, fill=matching_status_actual.match)) +
+geom_bar(colour="black", stat="identity")
+############
+#check the response
+notmatching<-sum(comparison$cluster.match==0)/nrow(comparison)
+matching<-sum(comparison$cluster.match==1)/nrow(comparison)
+
+dat <- data.frame(
+  matching_status_cluster.match = factor(c("notmatching","matching"), levels=c("notmatching","matching")),percent = c( notmatching,matching))
+ggplot(data=dat, aes(x=matching_status_cluster.match, y=percent, fill=matching_status_cluster.match)) +
+geom_bar(colour="black", stat="identity")
+
+
+```
+
+
+#======================================================================================
+#THE END
+#=======================================================================================
